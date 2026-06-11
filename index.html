@@ -761,11 +761,15 @@ Reponds UNIQUEMENT en JSON valide, sans markdown ni backticks. Pas d apostrophes
 }
 
 REGLES BUDGET - TRES IMPORTANT :
-- budget_cash_euros : uniquement l argent disponible immediatement sur compte bancaire en euros
-- budget_crypto_euros : valeur du portefeuille crypto existant (bitcoin, USDC, ETH, etc.) converti en euros
-- budget_total_estime : somme des deux — c est le vrai budget disponible pour l accompagnement
-- Un prospect avec 1000 euros cash MAIS 45 000 euros en crypto est un prospect QUALIFIE — il peut vendre sa crypto pour payer
-- Ne jamais marquer budget faible si le portefeuille crypto est superieur a 6800 euros
+- Lis TOUT le transcript attentivement pour trouver les montants mentionnes
+- budget_cash_euros : argent disponible sur compte bancaire en euros (cherche : "cash", "liquide", "compte", "banque", "euros disponibles")
+- budget_crypto_euros : valeur totale du portefeuille crypto en euros (cherche : "bitcoin", "BTC", "ethereum", "ETH", "USDC", "portefeuille", "crypto", montants en euros ou en BTC/ETH)
+  * Si prospect mentionne "0.8 bitcoin" ou "0,8 BTC" → convertir en euros au cours actuel (~60 000 euros le bitcoin) → 0.8 x 60 000 = 48 000 euros
+  * Si prospect mentionne "45 000 euros en crypto" → budget_crypto_euros = "45 000 euros"
+  * Si prospect mentionne une fraction de bitcoin → calculer la valeur approximative
+- budget_total_estime : somme cash + crypto — c est le VRAI budget disponible
+- Un prospect avec 1000 euros cash MAIS 45 000 euros en crypto est un prospect QUALIFIE
+- Ne jamais marquer budget_crypto_euros = 0 si des cryptos sont mentionnees dans le transcript
 
 REGLES DECISION SOLO :
 - Si prospect dit "separation de biens" ou "divorce" ou "mes investissements sont a moi" → decision_solo = oui
