@@ -727,77 +727,86 @@ async function transcribeAudio(file, apiKey) {
 }
 
 async function analyzeTranscript(transcript, apiKey) {
-  const prompt = `Tu analyses un appel de setting crypto high-ticket entre un setter (Richard) et un prospect.
-Reponds UNIQUEMENT en JSON valide, sans markdown ni backticks. Pas d apostrophes dans les valeurs texte.
+  const prompt = `Tu es un expert en closing high-ticket crypto. Analyse ce transcript d appel de setting entre Richard (setter) et un prospect.
+Reponds UNIQUEMENT en JSON valide, sans markdown ni backticks. Remplace toutes les apostrophes par un espace dans les valeurs texte.
 
 {
   "prenom_nom": "Prenom Nom du prospect",
   "age": "XX ans ou inconnu",
-  "situation": "resume en 1 phrase de la situation du prospect",
+  "situation": "resume du profil en 2-3 lignes : metier, situation perso, objectif financier",
   "depuis_quand_julien": "quelques_jours|moins_1_mois|moins_6_mois|moins_2_ans|depuis_debuts|non_mentionne",
   "decision_solo": "oui|non|non_demande",
   "separation_biens": "oui|non|non_mentionne",
   "argent_personnel": "oui|non|non_demande",
   "pret_maintenant": "oui|dans_quelques_mois|pas_urgent|non_mentionne",
   "zone_souffrance": "forte|faible|aucune|non_detectable",
-  "budget_cash_euros": "montant en euros disponible sur compte bancaire ou non_mentionne",
-  "budget_crypto_euros": "valeur du portefeuille crypto existant en euros ou non_mentionne",
-  "budget_total_estime": "montant total estime cash + crypto ou non_mentionne",
+  "budget_cash_euros": "montant exact cite ou non_mentionne — NE PAS INVENTER",
+  "budget_crypto_euros": "valeur portefeuille crypto en euros — calculer si BTC/ETH cite (BTC ~ 60000 euros)",
+  "budget_total_estime": "somme cash + crypto ou non_mentionne",
   "curiosite_pure": "oui|non",
   "suspicion_arnaque": "oui|non",
   "urgence": "forte|faible|aucune",
+  "signaux_positifs": ["signal positif 1", "signal positif 2", "signal positif 3"],
+  "signaux_surveiller": ["point de vigilance 1", "point de vigilance 2"],
   "objections": ["objection 1", "objection 2"],
   "signaux_fatals": [],
   "combo_fatal": "oui|non",
-  "points_positifs": ["point 1", "point 2"],
   "score_budget": 0,
   "score_urgence": 0,
   "score_douleur": 0,
   "score_decision": 0,
+  "score_global": 0,
   "recommandation": "RDV_OK|RDV_KO|RDV_CONDITIONNEL",
   "raison_recommandation": "explication courte",
-  "resume_closer": "resume de 3-4 phrases pour le closer, ton naturel, pas IA",
-  "points_a_creuser": "2-3 questions precises a poser en debut de closing"
+  "resume_closer": "analyse detaillee pour le closer : profil psychologique, ce qui va bien se passer, ce qui peut bloquer. Ton naturel, direct, pas IA. 4-5 phrases.",
+  "questions_cles": ["Question 1 precise et calibree au profil", "Question 2", "Question 3"]
 }
 
-REGLES BUDGET - TRES IMPORTANT :
-- Lis TOUT le transcript attentivement pour trouver les montants mentionnes
-- budget_cash_euros : argent disponible sur compte bancaire en euros (cherche : "cash", "liquide", "compte", "banque", "euros disponibles")
-- budget_crypto_euros : valeur totale du portefeuille crypto en euros (cherche : "bitcoin", "BTC", "ethereum", "ETH", "USDC", "portefeuille", "crypto", montants en euros ou en BTC/ETH)
-  * Si prospect mentionne "0.8 bitcoin" ou "0,8 BTC" → convertir en euros au cours actuel (~60 000 euros le bitcoin) → 0.8 x 60 000 = 48 000 euros
-  * Si prospect mentionne "45 000 euros en crypto" → budget_crypto_euros = "45 000 euros"
-  * Si prospect mentionne une fraction de bitcoin → calculer la valeur approximative
-- budget_total_estime : somme cash + crypto — c est le VRAI budget disponible
-- Un prospect avec 1000 euros cash MAIS 45 000 euros en crypto est un prospect QUALIFIE
-- Ne jamais marquer budget_crypto_euros = 0 si des cryptos sont mentionnees dans le transcript
+REGLES BUDGET — CRITIQUE :
+- Lis TOUT le transcript pour trouver les montants
+- budget_cash_euros : argent sur compte bancaire (mots-cles : cash, liquide, compte, banque, euros dispo)
+  * Si prospect dit "beaucoup de cash" sans montant precis → mettre "beaucoup de cash non chiffre"
+  * Ne jamais inventer un montant — si flou, mettre "non_mentionne"
+- budget_crypto_euros : valeur portefeuille crypto en euros
+  * "0.8 bitcoin" ou "0,8 BTC" → 0.8 x 60000 = 48000 euros
+  * "45 000 euros en crypto" → 45000 euros
+  * "beaucoup de crypto" sans montant → "non chiffre"
+  * Ne jamais mettre 0 si des cryptos sont mentionnees
+- budget_total_estime : cash + crypto — c est le VRAI budget
+- Un prospect avec peu de cash mais 45K en crypto est QUALIFIE — il peut vendre sa crypto
 
 REGLES DECISION SOLO :
-- Si prospect dit "separation de biens" ou "divorce" ou "mes investissements sont a moi" → decision_solo = oui
-- Si prospect dit "il faut que j en parle a ma femme" ou "on decide ensemble" → decision_solo = non
-- Ne marquer non que si clairement dit
+- "separation de biens" ou "divorce" ou "investissements a moi" → decision_solo = oui
+- "il faut que j en parle a ma femme" → decision_solo = non
+- Ne mettre non que si dit explicitement
 
-SIGNAUX FATALS — signaux qui rendent le closing impossible (taux 0-4% historique) :
-- curiosite_pure = oui : prospect juste la pour se renseigner, pas d intention d achat
-- urgence = aucune : aucune raison d agir maintenant
-- decision_solo = non ET separation_biens = non : doit consulter conjoint sans separation de biens
-- zone_souffrance = aucune : aucune douleur financiere verbalisee
-- Si 2+ signaux fatals simultanes → combo_fatal = oui
+SIGNAUX FATALS (taux closing historique 0-4%) :
+- curiosite_pure : juste la pour se renseigner
+- urgence_nulle : aucune raison d agir maintenant
+- conjoint_bloquant : doit consulter conjoint sans separation de biens
+- souffrance_nulle : aucune douleur financiere verbalisee
+- Si 2+ → combo_fatal = oui
 
-signaux_fatals doit lister les signaux fatals detectes : ex ["curiosite_pure", "urgence_nulle"]
+SCORES 0-100 :
+- score_budget : peut payer 3800-6800 euros (cash + crypto) — 90+ si >15K, 70 si 6-15K, 40 si 3-6K, 10 si <3K
+- score_urgence : forte=85, faible=45, aucune=5
+- score_douleur : forte=85, faible=45, aucune=5
+- score_decision : solo=90, separation_biens=80, non_demande=50, non=10
+- score_global : moyenne des 4 scores
 
-SCORES de 0 a 100 :
-- score_budget : peut-il payer 3800-6800 euros (cash + crypto confondus)
-- score_urgence : est-il pret a passer a l action maintenant (forte=80+, faible=40, aucune=0)
-- score_douleur : a-t-il une vraie souffrance financiere verbalisee (forte=80+, faible=40, aucune=0)
-- score_decision : peut-il decider seul (oui=90, separation biens=80, non_demande=50, non=10)
+SIGNAUX POSITIFS : liste les vrais points forts du prospect (budget, vision, douleur verbalisee, experience crypto, decision solo, etc.)
+SIGNAUX A SURVEILLER : points de vigilance pour le closer (pas urgence franche, profil analytique, objection possible, etc.)
+
+QUESTIONS CLES : 3 questions precises et personnalisees au profil — pas generiques. Format : citation du prospect + question calibree.
+Exemple : "Il a dit qu il ne sait pas quand vendre → Demander : Sur tes cycles precedents ou tu as perdu, c etait quoi le vrai probleme ?"
 
 RECOMMANDATION :
 - RDV_OK : budget ok + pas de signal fatal + urgence au moins faible
-- RDV_KO : curiosite pure OU combo_fatal OU budget total < 3800 ET aucun levier
-- RDV_CONDITIONNEL : budget limite mais portefeuille crypto existe, ou urgence faible mais douleur forte
+- RDV_KO : curiosite pure OU combo_fatal OU budget total < 3800
+- RDV_CONDITIONNEL : budget limite mais crypto existe, ou urgence faible mais douleur forte
 
 Transcript :
-${transcript.slice(0, 25000)}`;
+${transcript.slice(0, 30000)}`;
 
   // Appel OpenAI GPT-4o-mini — même clé que Whisper, zéro CORS
   const resp = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -807,7 +816,7 @@ ${transcript.slice(0, 25000)}`;
       'Authorization': 'Bearer ' + apiKey
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       max_tokens: 1200,
       messages: [
         { role: 'system', content: 'Tu es un expert en closing high-ticket crypto. Réponds UNIQUEMENT en JSON valide, sans markdown ni backticks. Dans les valeurs texte, évite les apostrophes.' },
@@ -897,7 +906,23 @@ function renderResult(d) {
 
   // Résumé
   document.getElementById('resume-text').textContent = d.resume_closer || '—';
-  document.getElementById('points-text').textContent = d.points_a_creuser || '—';
+
+  // Signaux positifs + à surveiller
+  const spContainer = document.getElementById('points-text');
+  let spHtml = '';
+  if ((d.signaux_positifs||[]).length) {
+    spHtml += '<div style="margin-bottom:10px;"><div style="font-size:10px;color:var(--green2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">✅ Signaux positifs</div>' +
+      d.signaux_positifs.map(s=>`<div style="font-size:12px;color:var(--text2);padding:3px 0 3px 10px;border-left:2px solid var(--green2);margin-bottom:3px;">${s}</div>`).join('') + '</div>';
+  }
+  if ((d.signaux_surveiller||[]).length) {
+    spHtml += '<div style="margin-bottom:10px;"><div style="font-size:10px;color:var(--amber2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">⚠️ Points de vigilance</div>' +
+      d.signaux_surveiller.map(s=>`<div style="font-size:12px;color:var(--text2);padding:3px 0 3px 10px;border-left:2px solid var(--amber2);margin-bottom:3px;">${s}</div>`).join('') + '</div>';
+  }
+  if ((d.questions_cles||[]).length) {
+    spHtml += '<div><div style="font-size:10px;color:var(--blue);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">🎯 Questions clés en closing</div>' +
+      d.questions_cles.map((q,i)=>`<div style="font-size:12px;color:var(--text2);padding:5px 8px;background:var(--bg3);border-radius:6px;margin-bottom:5px;"><span style="color:var(--blue);font-weight:600;">${i+1}.</span> ${q}</div>`).join('') + '</div>';
+  }
+  spContainer.innerHTML = spHtml || '<span style="color:var(--text3)">—</span>';
 }
 
 function formatVal(v) {
@@ -937,27 +962,26 @@ ${rdvLabel}
 _${d.raison_recommandation}_
 
 *Budget*
-• Cash dispo : ${d.budget_cash_euros || 'non mentionné'}
-• Portefeuille crypto : ${d.budget_crypto_euros || 'inconnu'}
+• Cash : ${d.budget_cash_euros || 'non mentionné'}
+• Crypto : ${d.budget_crypto_euros || 'inconnu'}
 • Total estimé : ${d.budget_total_estime || 'non estimé'}
 
 *Profil*
 • Suit Julien : ${formatVal(d.depuis_quand_julien)}
 • Décision solo : ${formatVal(d.decision_solo)}
-• Argent perso : ${formatVal(d.argent_personnel)}
 • Prêt maintenant : ${formatVal(d.pret_maintenant)}
 • Souffrance : ${formatVal(d.zone_souffrance)}
 • Urgence : ${formatVal(d.urgence)}
 • Curiosité pure : ${formatVal(d.curiosite_pure)}
 
-${(d.signaux_fatals||[]).length ? '*🚨 Signaux fatals*\n' + (d.signaux_fatals||[]).map(f=>`• ${f}`).join('\n') + (d.combo_fatal==='oui'?'\n⚠️ COMBO FATAL':'')+'\n' : ''}*Objections*
-${(d.objections || []).length ? (d.objections || []).map(o => `• ${o}`).join('\n') : '• Aucune'}
+${(d.signaux_positifs||[]).length ? '*✅ Signaux positifs*\n'+(d.signaux_positifs||[]).map(s=>`• ${s}`).join('\n')+'\n\n' : ''}${(d.signaux_surveiller||[]).length ? '*⚠️ Points de vigilance*\n'+(d.signaux_surveiller||[]).map(s=>`• ${s}`).join('\n')+'\n\n' : ''}${(d.signaux_fatals||[]).length ? '*🚨 Signaux fatals*\n'+(d.signaux_fatals||[]).map(f=>`• ${f}`).join('\n')+(d.combo_fatal==='oui'?'\n⚠️ COMBO FATAL':'')+'\n\n' : ''}*Objections*
+${(d.objections||[]).length ? (d.objections||[]).map(o=>`• ${o}`).join('\n') : '• Aucune'}
 
 *Résumé pour ${closerName}*
 ${d.resume_closer || '—'}
 
-*À creuser en closing*
-${d.points_a_creuser || '—'}`;
+*Questions clés en closing*
+${(d.questions_cles||[]).map((q,i)=>`${i+1}. ${q}`).join('\n') || '—'}`;
 
   window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
 }
