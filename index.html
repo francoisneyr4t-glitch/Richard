@@ -477,11 +477,12 @@
   <div class="card" id="config-card">
     <div class="card-title">Configuration (une seule fois)</div>
     <div class="config-row">
-      <span class="config-label">Clé OpenAI</span>
+      <span class="config-label">Clé OpenAI (Whisper)</span>
       <input type="password" class="config-input" id="openai-key" placeholder="sk-...">
     </div>
     <div class="config-row">
-      
+      <span class="config-label">Clé Anthropic (Analyse)</span>
+      <input type="password" class="config-input" id="anthropic-key" placeholder="sk-ant-...">
     </div>
     <div class="config-row">
       <span class="config-label">Prénom Setter</span>
@@ -621,7 +622,7 @@ document.addEventListener('click', e => {
 // ─── Config persistence ───────────────────────────────────────────────────────
 window.addEventListener('load', () => {
   document.getElementById('openai-key').value = localStorage.getItem('openai_key') || '';
-  
+  document.getElementById('anthropic-key').value = localStorage.getItem('anthropic_key') || '';
   document.getElementById('setter-name').value = localStorage.getItem('setter_name') || 'Richard';
   document.getElementById('closer-name').value = localStorage.getItem('closer_name') || 'François';
   checkReady();
@@ -629,7 +630,7 @@ window.addEventListener('load', () => {
 
 function saveConfig() {
   localStorage.setItem('openai_key', document.getElementById('openai-key').value.trim());
-  
+  localStorage.setItem('anthropic_key', document.getElementById('anthropic-key').value.trim());
   localStorage.setItem('setter_name', document.getElementById('setter-name').value.trim());
   localStorage.setItem('closer_name', document.getElementById('closer-name').value.trim());
   document.getElementById('saved-ok').style.display = 'block';
@@ -639,7 +640,8 @@ function saveConfig() {
 
 function checkReady() {
   const ok = selectedFile &&
-    document.getElementById('openai-key').value.trim();
+    document.getElementById('openai-key').value.trim() &&
+    document.getElementById('anthropic-key').value.trim();
   document.getElementById('analyze-btn').disabled = !ok;
 }
 
@@ -668,8 +670,10 @@ function handleFile(file) {
 // ─── Analysis ─────────────────────────────────────────────────────────────────
 async function startAnalysis() {
   const openaiKey = document.getElementById('openai-key').value.trim();
+  const anthropicKey = document.getElementById('anthropic-key').value.trim();
 
   if (!openaiKey) { showError('Clé OpenAI manquante — sauvegarde ta configuration.'); return; }
+  if (!anthropicKey) { showError('Clé Anthropic manquante — sauvegarde ta configuration.'); return; }
   if (!selectedFile) { showError('Aucun fichier sélectionné.'); return; }
 
   document.getElementById('analyze-btn').disabled = true;
@@ -683,9 +687,9 @@ async function startAnalysis() {
     fullTranscript = await transcribeAudio(selectedFile, openaiKey);
     setStep('step-transcription', 'done');
 
-    // STEP 2 — Analyse GPT-4o-mini
+    // STEP 2 — Analyse Claude via Cloudflare Worker
     setStep('step-analysis', 'active');
-    const analysis = await analyzeTranscript(fullTranscript, openaiKey);
+    const analysis = await analyzeTranscript(fullTranscript, anthropicKey);
     setStep('step-analysis', 'done');
 
     // STEP 3 — Generate CR
@@ -808,29 +812,26 @@ RECOMMANDATION :
 Transcript :
 ${transcript.slice(0, 30000)}`;
 
-  // Appel OpenAI GPT-4o-mini — même clé que Whisper, zéro CORS
-  const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+  // Appel via Cloudflare Worker → Anthropic Claude Sonnet
+  const resp = await fetch('https://shy-bush-a70f.francois-neyr4t.workers.dev/', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + apiKey
+      'X-Api-Key': apiKey
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
-      max_tokens: 1200,
-      messages: [
-        { role: 'system', content: 'Tu es un expert en closing high-ticket crypto. Réponds UNIQUEMENT en JSON valide, sans markdown ni backticks. Dans les valeurs texte, évite les apostrophes.' },
-        { role: 'user', content: prompt }
-      ]
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 2000,
+      messages: [{ role: 'user', content: prompt }]
     })
   });
 
   if (!resp.ok) {
-    const err = await resp.json();
-    throw new Error('OpenAI : ' + (err.error?.message || resp.status));
+    const err = await resp.json().catch(()=>({}));
+    throw new Error('Anthropic : ' + (err.error?.message || resp.status));
   }
   const data = await resp.json();
-  let text = data.choices[0].message.content.trim().replace(/```json|```/g, '').trim();
+  let text = data.content[0].text.trim().replace(/```json|```/g, '').trim();
   return JSON.parse(text);
 }
 
