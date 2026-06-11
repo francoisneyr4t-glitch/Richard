@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Setting Tool — Richard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f13;
+    --surface: #1a1a22;
+    --surface2: #22222e;
+    --border: #2e2e3e;
+    --accent: #6c63ff;
+    --accent2: #a78bfa;
+    --green: #22c55e;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --text: #f0f0f8;
+    --text2: #9090b0;
+    --text3: #5a5a7a;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px;
+  }
+
+  .container { max-width: 680px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .header .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .header .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: var(--text);
+  }
+  .header p {
+    font-size: 13px;
+    color: var(--text2);
+    margin-top: 4px;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 14px;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 14px;
+  }
+
+  /* Config */
+  .config-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .config-row:last-child { margin-bottom: 0; }
+  .config-label {
+    font-size: 12px;
+    color: var(--text2);
+    width: 110px;
+    flex-shrink: 0;
+  }
+  .config-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--text);
+    font-family: 'SF Mono', monospace;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .config-input:focus { border-color: var(--accent); }
+  .config-input::placeholder { color: var(--text3); }
+
+  .save-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 12px;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .save-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .saved-indicator {
+    font-size: 11px;
+    color: var(--green);
+    margin-top: 8px;
+    display: none;
+  }
+
+  /* Drop zone */
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 36px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(108, 99, 255, 0.05);
+  }
+  .drop-zone input[type=file] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+  .drop-icon { font-size: 36px; margin-bottom: 10px; }
+  .drop-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .drop-sub { font-size: 12px; color: var(--text2); }
+  .file-selected {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-top: 14px;
+  }
+  .file-selected.show { display: flex; }
+  .file-icon { font-size: 20px; }
+  .file-name { font-size: 13px; color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-size { font-size: 11px; color: var(--text3); }
+
+  /* Analyze button */
+  .analyze-btn {
+    width: 100%;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 4px;
+    letter-spacing: -0.2px;
+  }
+  .analyze-btn:hover:not(:disabled) {
+    background: var(--accent2);
+    transform: translateY(-1px);
+  }
+  .analyze-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Progress */
+  .progress-card { display: none; }
+  .progress-card.show { display: block; }
+  .progress-step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    font-size: 13px;
+    color: var(--text2);
+  }
+  .step-icon { width: 22px; text-align: center; font-size: 16px; }
+  .step-spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .step-done { color: var(--green); }
+  .step-active { color: var(--text); font-weight: 500; }
+  .step-error { color: var(--red); }
+
+  /* Result */
+  .result-card { display: none; }
+  .result-card.show { display: block; }
+
+  .prospect-name {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    letter-spacing: -0.3px;
+  }
+  .rdv-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  .rdv-ok { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+  .rdv-ko { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+  .rdv-warn { background: rgba(245,158,11,0.15); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+
+  .cr-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .cr-item {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .cr-item-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text3);
+    margin-bottom: 3px;
+  }
+  .cr-item-value {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .cr-item-value.green { color: var(--green); }
+  .cr-item-value.red { color: var(--red); }
+  .cr-item-value.amber { color: var(--amber); }
+
+  .cr-section {
+    margin-bottom: 14px;
+  }
+  .cr-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 8px;
+  }
+  .cr-text {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.6;
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 12px;
+  }
+
+  .objection-tag {
+    display: inline-block;
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.2);
+    color: #fca5a5;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11px;
+    margin: 2px;
+  }
+
+  .score-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .score-label { font-size: 12px; color: var(--text2); width: 120px; flex-shrink: 0; }
+  .score-track {
+    flex: 1;
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .score-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.8s ease;
+  }
+  .score-num { font-size: 12px; font-weight: 600; width: 36px; text-align: right; }
+
+  /* WhatsApp button */
+  .wa-btn {
+    width: 100%;
+    background: #25d366;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .wa-btn:hover { background: #1ebe5d; transform: translateY(-1px); }
+
+  .reset-btn {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 13px;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+  .reset-btn:hover { border-color: var(--text2); color: var(--text); }
+
+  /* Bug report button */
+  .bug-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.2s;
+    z-index: 100;
+  }
+  .bug-btn:hover { border-color: var(--text3); transform: scale(1.1); }
+  .bug-notif {
+    position: absolute;
+    top: -4px; right: -4px;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--red);
+    border: 2px solid var(--bg);
+    display: none;
+  }
+  .bug-notif.show { display: block; }
+
+  .bug-panel {
+    position: fixed;
+    bottom: 68px;
+    right: 20px;
+    width: 300px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    display: none;
+    z-index: 100;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  .bug-panel.show { display: block; }
+  .bug-panel-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 8px;
+  }
+  .bug-log {
+    font-family: 'SF Mono', monospace;
+    font-size: 10px;
+    color: #fca5a5;
+    background: var(--surface2);
+    border-radius: 6px;
+    padding: 8px;
+    max-height: 120px;
+    overflow-y: auto;
+    word-break: break-all;
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+  .bug-copy-btn {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px;
+    font-size: 11px;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .bug-copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .bug-no-error {
+    font-size: 12px;
+    color: var(--text3);
+    text-align: center;
+    padding: 8px 0;
+  }
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.2);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 13px;
+    color: #fca5a5;
+    margin-top: 10px;
+    display: none;
+  }
+  .error-msg.show { display: block; }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 16px 0;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <div class="dot"></div>
+      <h1>Setting Tool</h1>
+    </div>
+    <p>Analyse d'appel de setting — Club X by Julien Roman — Ouvrir avec Chrome</p>
+  </div>
+
+  <!-- Config -->
+  <div class="card" id="config-card">
+    <div class="card-title">Configuration (une seule fois)</div>
+    <div class="config-row">
+      <span class="config-label">Clé OpenAI</span>
+      <input type="password" class="config-input" id="openai-key" placeholder="sk-...">
+    </div>
+    <div class="config-row">
+      
+    </div>
+    <div class="config-row">
+      <span class="config-label">Prénom Setter</span>
+      <input type="text" class="config-input" id="setter-name" placeholder="Richard" style="font-family: -apple-system, sans-serif;">
+    </div>
+    <div class="config-row">
+      <span class="config-label">Prénom Closer</span>
+      <input type="text" class="config-input" id="closer-name" placeholder="François" style="font-family: -apple-system, sans-serif;">
+      <button class="save-btn" onclick="saveConfig()">Sauvegarder</button>
+    </div>
+    <div class="saved-indicator" id="saved-ok">✓ Configuration sauvegardée</div>
+  </div>
+
+  <!-- Upload -->
+  <div class="card" id="upload-card">
+    <div class="card-title">Enregistrement audio</div>
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" id="audio-file" accept=".mp3,.m4a,.mp4,.wav,.ogg,.webm">
+      <div class="drop-icon">🎙️</div>
+      <div class="drop-title">Glisse ton fichier audio ici</div>
+      <div class="drop-sub">MP3, M4A, MP4, WAV — max 25 Mo</div>
+    </div>
+    <div class="file-selected" id="file-selected">
+      <span class="file-icon">🎵</span>
+      <span class="file-name" id="file-name">—</span>
+      <span class="file-size" id="file-size">—</span>
+    </div>
+    <div class="error-msg" id="error-msg"></div>
+  </div>
+
+  <!-- Analyze button -->
+  <button class="analyze-btn" id="analyze-btn" onclick="startAnalysis()" disabled>
+    Analyser l'appel
+  </button>
+
+  <!-- Progress -->
+  <div class="card progress-card" id="progress-card">
+    <div class="card-title">Analyse en cours</div>
+    <div class="progress-step" id="step-transcription">
+      <div class="step-icon">🎙️</div>
+      <span>Transcription de l'audio...</span>
+    </div>
+    <div class="progress-step" id="step-analysis">
+      <div class="step-icon">🧠</div>
+      <span>Analyse du prospect...</span>
+    </div>
+    <div class="progress-step" id="step-cr">
+      <div class="step-icon">📋</div>
+      <span>Génération du CR...</span>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="card result-card" id="result-card">
+    <div id="prospect-name" class="prospect-name">—</div>
+    <div id="rdv-badge" class="rdv-badge rdv-warn">—</div>
+
+    <!-- Scores -->
+    <div class="cr-section">
+      <div class="cr-section-title">Score de qualification</div>
+      <div id="scores-container"></div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Grid critères -->
+    <div class="cr-grid" id="cr-grid"></div>
+
+    <hr class="divider">
+
+    <!-- Objections -->
+    <div class="cr-section" id="objections-section">
+      <div class="cr-section-title">Objections détectées</div>
+      <div id="objections-container"></div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Résumé -->
+    <div class="cr-section">
+      <div class="cr-section-title">Résumé pour le closer</div>
+      <div class="cr-text" id="resume-text">—</div>
+    </div>
+
+    <!-- Points à creuser -->
+    <div class="cr-section">
+      <div class="cr-section-title">Points à creuser en closing</div>
+      <div class="cr-text" id="points-text">—</div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- WhatsApp -->
+    <button class="wa-btn" id="wa-btn" onclick="sendWhatsApp()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Envoyer à François sur WhatsApp
+    </button>
+    <button class="reset-btn" onclick="resetTool()">↩ Analyser un autre appel</button>
+  </div>
+
+</div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+let selectedFile = null;
+let crData = null;
+let fullTranscript = '';
+let lastError = '';
+
+// ─── Bug panel ────────────────────────────────────────────────────────────────
+function toggleBugPanel() {
+  document.getElementById('bug-panel').classList.toggle('show');
+}
+function logBug(msg) {
+  lastError = msg;
+  document.getElementById('bug-log').textContent = msg;
+  document.getElementById('bug-notif').classList.add('show');
+}
+function copyBugLog() {
+  if (!lastError) return;
+  const text = `Bug Setting Tool :\n${lastError}`;
+  navigator.clipboard.writeText(text).then(() => {
+    document.querySelector('.bug-copy-btn').textContent = '✓ Copié !';
+    setTimeout(() => document.querySelector('.bug-copy-btn').textContent = '📋 Copier pour envoyer à François', 2000);
+  });
+}
+
+// Close panel on outside click
+document.addEventListener('click', e => {
+  const panel = document.getElementById('bug-panel');
+  const btn = document.getElementById('bug-btn');
+  if (panel.classList.contains('show') && !panel.contains(e.target) && !btn.contains(e.target)) {
+    panel.classList.remove('show');
+  }
+});
+
+// ─── Config persistence ───────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  document.getElementById('openai-key').value = localStorage.getItem('openai_key') || '';
+  
+  document.getElementById('setter-name').value = localStorage.getItem('setter_name') || 'Richard';
+  document.getElementById('closer-name').value = localStorage.getItem('closer_name') || 'François';
+  checkReady();
+});
+
+function saveConfig() {
+  localStorage.setItem('openai_key', document.getElementById('openai-key').value.trim());
+  
+  localStorage.setItem('setter_name', document.getElementById('setter-name').value.trim());
+  localStorage.setItem('closer_name', document.getElementById('closer-name').value.trim());
+  document.getElementById('saved-ok').style.display = 'block';
+  setTimeout(() => document.getElementById('saved-ok').style.display = 'none', 2000);
+  checkReady();
+}
+
+function checkReady() {
+  const ok = selectedFile &&
+    document.getElementById('openai-key').value.trim();
+  document.getElementById('analyze-btn').disabled = !ok;
+}
+
+// ─── File handling ────────────────────────────────────────────────────────────
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('audio-file');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
+
+function handleFile(file) {
+  selectedFile = file;
+  document.getElementById('file-name').textContent = file.name;
+  document.getElementById('file-size').textContent = (file.size / 1024 / 1024).toFixed(1) + ' Mo';
+  document.getElementById('file-selected').classList.add('show');
+  hideError();
+  checkReady();
+}
+
+// ─── Analysis ─────────────────────────────────────────────────────────────────
+async function startAnalysis() {
+  const openaiKey = document.getElementById('openai-key').value.trim();
+
+  if (!openaiKey) { showError('Clé OpenAI manquante — sauvegarde ta configuration.'); return; }
+  if (!selectedFile) { showError('Aucun fichier sélectionné.'); return; }
+
+  document.getElementById('analyze-btn').disabled = true;
+  document.getElementById('progress-card').classList.add('show');
+  document.getElementById('result-card').classList.remove('show');
+  hideError();
+
+  try {
+    // STEP 1 — Transcription Whisper
+    setStep('step-transcription', 'active');
+    fullTranscript = await transcribeAudio(selectedFile, openaiKey);
+    setStep('step-transcription', 'done');
+
+    // STEP 2 — Analyse GPT-4o-mini
+    setStep('step-analysis', 'active');
+    const analysis = await analyzeTranscript(fullTranscript, openaiKey);
+    setStep('step-analysis', 'done');
+
+    // STEP 3 — Generate CR
+    setStep('step-cr', 'active');
+    crData = analysis;
+    renderResult(crData);
+    setStep('step-cr', 'done');
+
+    document.getElementById('progress-card').classList.remove('show');
+    document.getElementById('result-card').classList.add('show');
+
+  } catch (err) {
+    showError('Erreur : ' + err.message);
+    document.getElementById('analyze-btn').disabled = false;
+    setStep('step-transcription', 'idle');
+    setStep('step-analysis', 'idle');
+    setStep('step-cr', 'idle');
+  }
+}
+
+async function transcribeAudio(file, apiKey) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('model', 'whisper-1');
+  formData.append('language', 'fr');
+
+  const resp = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + apiKey },
+    body: formData
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json();
+    throw new Error('Whisper : ' + (err.error?.message || resp.status));
+  }
+  const data = await resp.json();
+  return data.text;
+}
+
+async function analyzeTranscript(transcript, apiKey) {
+  const prompt = `Tu analyses un appel de setting crypto high-ticket entre un setter (Richard) et un prospect.
+Reponds UNIQUEMENT en JSON valide, sans markdown ni backticks. Pas d apostrophes dans les valeurs texte.
+
+{
+  "prenom_nom": "Prenom Nom du prospect",
+  "age": "XX ans ou inconnu",
+  "situation": "resume en 1 phrase de la situation du prospect",
+  "depuis_quand_julien": "quelques_jours|moins_1_mois|moins_6_mois|moins_2_ans|depuis_debuts|non_mentionne",
+  "decision_solo": "oui|non|non_demande",
+  "separation_biens": "oui|non|non_mentionne",
+  "argent_personnel": "oui|non|non_demande",
+  "pret_maintenant": "oui|dans_quelques_mois|pas_urgent|non_mentionne",
+  "zone_souffrance": "forte|faible|aucune|non_detectable",
+  "budget_cash_euros": "montant en euros disponible sur compte bancaire ou non_mentionne",
+  "budget_crypto_euros": "valeur du portefeuille crypto existant en euros ou non_mentionne",
+  "budget_total_estime": "montant total estime cash + crypto ou non_mentionne",
+  "curiosite_pure": "oui|non",
+  "suspicion_arnaque": "oui|non",
+  "urgence": "forte|faible|aucune",
+  "objections": ["objection 1", "objection 2"],
+  "signaux_fatals": [],
+  "combo_fatal": "oui|non",
+  "points_positifs": ["point 1", "point 2"],
+  "score_budget": 0,
+  "score_urgence": 0,
+  "score_douleur": 0,
+  "score_decision": 0,
+  "recommandation": "RDV_OK|RDV_KO|RDV_CONDITIONNEL",
+  "raison_recommandation": "explication courte",
+  "resume_closer": "resume de 3-4 phrases pour le closer, ton naturel, pas IA",
+  "points_a_creuser": "2-3 questions precises a poser en debut de closing"
+}
+
+REGLES BUDGET - TRES IMPORTANT :
+- budget_cash_euros : uniquement l argent disponible immediatement sur compte bancaire en euros
+- budget_crypto_euros : valeur du portefeuille crypto existant (bitcoin, USDC, ETH, etc.) converti en euros
+- budget_total_estime : somme des deux — c est le vrai budget disponible pour l accompagnement
+- Un prospect avec 1000 euros cash MAIS 45 000 euros en crypto est un prospect QUALIFIE — il peut vendre sa crypto pour payer
+- Ne jamais marquer budget faible si le portefeuille crypto est superieur a 6800 euros
+
+REGLES DECISION SOLO :
+- Si prospect dit "separation de biens" ou "divorce" ou "mes investissements sont a moi" → decision_solo = oui
+- Si prospect dit "il faut que j en parle a ma femme" ou "on decide ensemble" → decision_solo = non
+- Ne marquer non que si clairement dit
+
+SIGNAUX FATALS — signaux qui rendent le closing impossible (taux 0-4% historique) :
+- curiosite_pure = oui : prospect juste la pour se renseigner, pas d intention d achat
+- urgence = aucune : aucune raison d agir maintenant
+- decision_solo = non ET separation_biens = non : doit consulter conjoint sans separation de biens
+- zone_souffrance = aucune : aucune douleur financiere verbalisee
+- Si 2+ signaux fatals simultanes → combo_fatal = oui
+
+signaux_fatals doit lister les signaux fatals detectes : ex ["curiosite_pure", "urgence_nulle"]
+
+SCORES de 0 a 100 :
+- score_budget : peut-il payer 3800-6800 euros (cash + crypto confondus)
+- score_urgence : est-il pret a passer a l action maintenant (forte=80+, faible=40, aucune=0)
+- score_douleur : a-t-il une vraie souffrance financiere verbalisee (forte=80+, faible=40, aucune=0)
+- score_decision : peut-il decider seul (oui=90, separation biens=80, non_demande=50, non=10)
+
+RECOMMANDATION :
+- RDV_OK : budget ok + pas de signal fatal + urgence au moins faible
+- RDV_KO : curiosite pure OU combo_fatal OU budget total < 3800 ET aucun levier
+- RDV_CONDITIONNEL : budget limite mais portefeuille crypto existe, ou urgence faible mais douleur forte
+
+Transcript :
+${transcript.slice(0, 25000)}`;
+
+  // Appel OpenAI GPT-4o-mini — même clé que Whisper, zéro CORS
+  const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + apiKey
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      max_tokens: 1200,
+      messages: [
+        { role: 'system', content: 'Tu es un expert en closing high-ticket crypto. Réponds UNIQUEMENT en JSON valide, sans markdown ni backticks. Dans les valeurs texte, évite les apostrophes.' },
+        { role: 'user', content: prompt }
+      ]
+    })
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json();
+    throw new Error('OpenAI : ' + (err.error?.message || resp.status));
+  }
+  const data = await resp.json();
+  let text = data.choices[0].message.content.trim().replace(/```json|```/g, '').trim();
+  return JSON.parse(text);
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function renderResult(d) {
+  // Name
+  document.getElementById('prospect-name').textContent = d.prenom_nom || 'Prospect';
+
+  // Badge
+  const badge = document.getElementById('rdv-badge');
+  if (d.recommandation === 'RDV_OK') {
+    badge.textContent = '✅ RDV accordé';
+    badge.className = 'rdv-badge rdv-ok';
+  } else if (d.recommandation === 'RDV_KO') {
+    badge.textContent = '❌ Ne pas accorder le RDV';
+    badge.className = 'rdv-badge rdv-ko';
+  } else {
+    badge.textContent = '⚠️ RDV conditionnel';
+    badge.className = 'rdv-badge rdv-warn';
+  }
+
+  // Scores
+  const scores = [
+    { label: 'Budget', val: d.score_budget },
+    { label: 'Urgence', val: d.score_urgence },
+    { label: 'Douleur', val: d.score_douleur },
+    { label: 'Décision solo', val: d.score_decision },
+  ];
+  const sc = document.getElementById('scores-container');
+  sc.innerHTML = scores.map(s => {
+    const color = s.val >= 70 ? '#22c55e' : s.val >= 40 ? '#f59e0b' : '#ef4444';
+    return `<div class="score-bar">
+      <span class="score-label">${s.label}</span>
+      <div class="score-track"><div class="score-fill" style="width:${s.val}%;background:${color}"></div></div>
+      <span class="score-num" style="color:${color}">${s.val}</span>
+    </div>`;
+  }).join('');
+
+  // Grid
+  const gridItems = [
+    { label: 'Suit Julien depuis', val: formatVal(d.depuis_quand_julien) },
+    { label: 'Budget cash (euros)', val: d.budget_cash_euros || '?', color: d.budget_cash_euros && d.budget_cash_euros !== 'non_mentionne' ? '' : 'amber' },
+    { label: 'Portefeuille crypto', val: d.budget_crypto_euros || '?', color: d.budget_crypto_euros && d.budget_crypto_euros !== 'non_mentionne' ? 'green' : '' },
+    { label: 'Budget total estimé', val: d.budget_total_estime || '?', color: 'green' },
+    { label: 'Décision solo', val: formatVal(d.decision_solo), color: colorBool(d.decision_solo) },
+    { label: 'Argent perso', val: formatVal(d.argent_personnel), color: colorBool(d.argent_personnel) },
+    { label: 'Prêt maintenant', val: formatVal(d.pret_maintenant), color: d.pret_maintenant === 'oui' ? 'green' : d.pret_maintenant === 'pas_urgent' ? 'red' : '' },
+    { label: 'Zone de souffrance', val: formatVal(d.zone_souffrance), color: d.zone_souffrance === 'forte' ? 'green' : d.zone_souffrance === 'aucune' ? 'red' : '' },
+    { label: 'Curiosité pure', val: formatVal(d.curiosite_pure), color: d.curiosite_pure === 'oui' ? 'red' : 'green' },
+    { label: 'Urgence', val: formatVal(d.urgence), color: d.urgence === 'forte' ? 'green' : d.urgence === 'aucune' ? 'red' : 'amber' },
+  ];
+  document.getElementById('cr-grid').innerHTML = gridItems.map(i =>
+    `<div class="cr-item"><div class="cr-item-label">${i.label}</div><div class="cr-item-value ${i.color||''}">${i.val}</div></div>`
+  ).join('');
+
+  // Objections + Signaux fatals
+  const obj = d.objections || [];
+  const fatals = d.signaux_fatals || [];
+  const comboFatal = d.combo_fatal === 'oui';
+  let fatalsHtml = '';
+  if (fatals.length || comboFatal) {
+    fatalsHtml = `<div style="margin-top:12px;">
+      <div class="section-label" style="color:#ef4444;">🚨 Signaux fatals détectés</div>
+      <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:10px;margin-top:6px;">
+        ${fatals.map(f => `<span class="objection-tag" style="background:rgba(239,68,68,0.15);color:#ef4444;">${f}</span>`).join('')}
+        ${comboFatal ? '<div style="font-size:11px;color:#ef4444;margin-top:6px;font-weight:600;">⚠️ COMBO FATAL — taux de closing historique : 4.7%</div>' : ''}
+      </div>
+    </div>`;
+  }
+  document.getElementById('objections-container').innerHTML = (fatalsHtml ? fatalsHtml + '<div style="margin-top:10px;">' : '') +
+    (obj.length ? obj.map(o => `<span class="objection-tag">${o}</span>`).join('') : '<span style="font-size:13px;color:var(--text3)">Aucune objection détectée</span>') +
+    (fatalsHtml ? '</div>' : '');
+
+  // Résumé
+  document.getElementById('resume-text').textContent = d.resume_closer || '—';
+  document.getElementById('points-text').textContent = d.points_a_creuser || '—';
+}
+
+function formatVal(v) {
+  const map = {
+    'oui': 'Oui', 'non': 'Non', 'non_demande': 'Non demandé',
+    'quelques_jours': 'Quelques jours', 'moins_1_mois': '< 1 mois',
+    'moins_6_mois': '< 6 mois', 'moins_2_ans': '< 2 ans',
+    'depuis_debuts': 'Depuis les débuts', 'non_mentionne': 'Non mentionné',
+    'forte': 'Forte', 'faible': 'Faible', 'aucune': 'Aucune',
+    'non_detectable': 'Non détectable', 'dans_quelques_mois': 'Dans quelques mois',
+    'pas_urgent': 'Pas urgent',
+  };
+  return map[v] || v || '?';
+}
+
+function colorBool(v) {
+  if (v === 'oui') return 'green';
+  if (v === 'non') return 'red';
+  return 'amber';
+}
+
+// ─── WhatsApp ─────────────────────────────────────────────────────────────────
+function sendWhatsApp() {
+  if (!crData) return;
+  const closerName = localStorage.getItem('closer_name') || 'François';
+  const setterName = localStorage.getItem('setter_name') || 'Richard';
+  const d = crData;
+
+  const rdvLabel = d.recommandation === 'RDV_OK' ? '✅ RDV accordé'
+    : d.recommandation === 'RDV_KO' ? '❌ RDV déconseillé'
+    : '⚠️ RDV conditionnel';
+
+  const msg = `*CR Setting — ${d.prenom_nom}*
+_Setter : ${setterName} → Closer : ${closerName}_
+
+${rdvLabel}
+_${d.raison_recommandation}_
+
+*Budget*
+• Cash dispo : ${d.budget_cash_euros || 'non mentionné'}
+• Portefeuille crypto : ${d.budget_crypto_euros || 'inconnu'}
+• Total estimé : ${d.budget_total_estime || 'non estimé'}
+
+*Profil*
+• Suit Julien : ${formatVal(d.depuis_quand_julien)}
+• Décision solo : ${formatVal(d.decision_solo)}
+• Argent perso : ${formatVal(d.argent_personnel)}
+• Prêt maintenant : ${formatVal(d.pret_maintenant)}
+• Souffrance : ${formatVal(d.zone_souffrance)}
+• Urgence : ${formatVal(d.urgence)}
+• Curiosité pure : ${formatVal(d.curiosite_pure)}
+
+${(d.signaux_fatals||[]).length ? '*🚨 Signaux fatals*\n' + (d.signaux_fatals||[]).map(f=>`• ${f}`).join('\n') + (d.combo_fatal==='oui'?'\n⚠️ COMBO FATAL':'')+'\n' : ''}*Objections*
+${(d.objections || []).length ? (d.objections || []).map(o => `• ${o}`).join('\n') : '• Aucune'}
+
+*Résumé pour ${closerName}*
+${d.resume_closer || '—'}
+
+*À creuser en closing*
+${d.points_a_creuser || '—'}`;
+
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function setStep(id, state) {
+  const el = document.getElementById(id);
+  const icon = el.querySelector('.step-icon');
+  if (state === 'active') {
+    el.className = 'progress-step step-active';
+    if (icon) icon.innerHTML = '<div class="step-spinner"></div>';
+  } else if (state === 'done') {
+    el.className = 'progress-step step-done';
+    if (icon) icon.textContent = '✓';
+  } else if (state === 'error') {
+    el.className = 'progress-step step-error';
+    if (icon) icon.textContent = '✗';
+  } else {
+    el.className = 'progress-step';
+  }
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.textContent = msg;
+  el.classList.add('show');
+  logBug(msg);
+}
+function hideError() {
+  document.getElementById('error-msg').classList.remove('show');
+}
+
+function resetTool() {
+  selectedFile = null;
+  crData = null;
+  fullTranscript = '';
+  lastError = '';
+  document.getElementById('bug-notif').classList.remove('show');
+  document.getElementById('bug-log').innerHTML = '<span class="bug-no-error">Aucune erreur détectée</span>';
+  document.getElementById('bug-panel').classList.remove('show');
+  document.getElementById('file-selected').classList.remove('show');
+  document.getElementById('result-card').classList.remove('show');
+  document.getElementById('progress-card').classList.remove('show');
+  document.getElementById('analyze-btn').disabled = true;
+  document.getElementById('audio-file').value = '';
+  hideError();
+  ['step-transcription','step-analysis','step-cr'].forEach(s => setStep(s, 'idle'));
+}
+
+// Key input listeners
+['openai-key','setter-name','closer-name'].forEach(id => {
+  document.getElementById(id).addEventListener('input', checkReady);
+});
+</script>
+<!-- Bug report -->
+<div class="bug-btn" id="bug-btn" onclick="toggleBugPanel()" title="Signaler un problème">
+  🐛
+  <div class="bug-notif" id="bug-notif"></div>
+</div>
+<div class="bug-panel" id="bug-panel">
+  <div class="bug-panel-title">Dernier message d'erreur</div>
+  <div class="bug-log" id="bug-log"><span class="bug-no-error">Aucune erreur détectée</span></div>
+  <button class="bug-copy-btn" onclick="copyBugLog()">📋 Copier pour envoyer à François</button>
+</div>
+
+</body>
+</html>
