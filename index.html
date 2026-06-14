@@ -745,11 +745,12 @@ Reponds UNIQUEMENT en JSON valide, sans markdown ni backticks. Remplace toutes l
   "pret_maintenant": "oui|dans_quelques_mois|pas_urgent|non_mentionne",
   "zone_souffrance": "forte|faible|aucune|non_detectable",
   "budget_cash_euros": "montant exact cite ou non_mentionne — NE PAS INVENTER",
-  "budget_crypto_euros": "valeur portefeuille crypto en euros — calculer si BTC/ETH cite (BTC ~ 60000 euros)",
+  "budget_crypto_euros": "valeur portefeuille crypto en euros — calculer si BTC/ETH cite (BTC ~ 64000 euros)",
   "budget_total_estime": "somme cash + crypto ou non_mentionne",
   "curiosite_pure": "oui|non",
   "suspicion_arnaque": "oui|non",
   "urgence": "forte|faible|aucune",
+  "contradiction_decision_solo": "oui|non",
   "signaux_positifs": ["signal positif 1", "signal positif 2", "signal positif 3"],
   "signaux_surveiller": ["point de vigilance 1", "point de vigilance 2"],
   "objections": ["objection 1", "objection 2"],
@@ -759,7 +760,9 @@ Reponds UNIQUEMENT en JSON valide, sans markdown ni backticks. Remplace toutes l
   "score_urgence": 0,
   "score_douleur": 0,
   "score_decision": 0,
+  "score_anciennete": 0,
   "score_global": 0,
+  "classification_lead": "A|B|C|D",
   "recommandation": "RDV_OK|RDV_KO|RDV_CONDITIONNEL",
   "raison_recommandation": "explication courte",
   "resume_closer": "analyse detaillee pour le closer : profil psychologique, ce qui va bien se passer, ce qui peut bloquer. Ton naturel, direct, pas IA. 4-5 phrases.",
@@ -768,46 +771,56 @@ Reponds UNIQUEMENT en JSON valide, sans markdown ni backticks. Remplace toutes l
 
 REGLES BUDGET — CRITIQUE :
 - Lis TOUT le transcript pour trouver les montants
-- budget_cash_euros : argent sur compte bancaire (mots-cles : cash, liquide, compte, banque, euros dispo)
+- budget_cash_euros : argent disponible IMMEDIATEMENT sur compte bancaire
   * Si prospect dit "beaucoup de cash" sans montant precis → mettre "beaucoup de cash non chiffre"
   * Ne jamais inventer un montant — si flou, mettre "non_mentionne"
-- budget_crypto_euros : valeur portefeuille crypto en euros
-  * "0.8 bitcoin" ou "0,8 BTC" → 0.8 x 60000 = 48000 euros
+- budget_crypto_euros : valeur portefeuille crypto en euros (BTC ~ 64000 euros en juin 2026)
+  * "0.8 bitcoin" ou "0,8 BTC" → 0.8 x 64000 = 51200 euros
   * "45 000 euros en crypto" → 45000 euros
   * "beaucoup de crypto" sans montant → "non chiffre"
   * Ne jamais mettre 0 si des cryptos sont mentionnees
 - budget_total_estime : cash + crypto — c est le VRAI budget
-- Un prospect avec peu de cash mais 45K en crypto est QUALIFIE — il peut vendre sa crypto
+- IMPORTANT : Un prospect avec peu de cash mais 45K en crypto est QUALIFIE — il peut payer en USDT directement
+- IMPORTANT : Capital bloque (assurance vie, SCPI, PEA, immobilier) = NE PAS compter dans le budget immediat
 
 REGLES DECISION SOLO :
-- "separation de biens" ou "divorce" ou "investissements a moi" → decision_solo = oui
+- "separation de biens" ou "divorce" ou "investissements a moi" → decision_solo = oui automatiquement
 - "il faut que j en parle a ma femme" → decision_solo = non
 - Ne mettre non que si dit explicitement
+- contradiction_decision_solo : dit oui au debut mais invoque conjoint ou partenaire a la fin
 
-SIGNAUX FATALS (taux closing historique 0-4%) :
-- curiosite_pure : juste la pour se renseigner
-- urgence_nulle : aucune raison d agir maintenant
+SIGNAUX FATALS — TAUX DE CLOSING REEL SUR 900 APPELS :
+- curiosite_pure : 0% closing sur 96 appels — NE JAMAIS BOOKER
+- combo_fatal : 1.1% closing sur 443 appels — NE PAS BOOKER sauf acompte symbolique
+- urgence_nulle : 11.8% closing — TRES DIFFICILE
 - conjoint_bloquant : doit consulter conjoint sans separation de biens
 - souffrance_nulle : aucune douleur financiere verbalisee
-- Si 2+ → combo_fatal = oui
+- Si 2+ signaux fatals → combo_fatal = oui
 
-SCORES 0-100 :
-- score_budget : peut payer 3800-6800 euros (cash + crypto) — 90+ si >15K, 70 si 6-15K, 40 si 3-6K, 10 si <3K
-- score_urgence : forte=85, faible=45, aucune=5
+SCORES 0-100 BASES SUR 900 APPELS REELS :
+- score_budget : peut payer 3800-6800 euros (cash + crypto) — 90+ si >15K, 70 si 6-15K, 40 si 3-6K, 10 si <3K, 0 si capital uniquement bloque
+- score_urgence : forte=90 (87.9% closing), faible=40 (25.3% closing), aucune=5 (11.8% closing)
 - score_douleur : forte=85, faible=45, aucune=5
-- score_decision : solo=90, separation_biens=80, non_demande=50, non=10
-- score_global : moyenne des 4 scores
+- score_decision : solo=90, separation_biens=85, non_demande=50, non=10
+- score_anciennete : depuis_debuts=90 (41.4% closing), moins_2_ans=80 (39.8%), moins_6_mois=65 (37.5%), moins_1_mois=40 (29.7%), quelques_jours=20
+- score_global : moyenne des 5 scores
 
-SIGNAUX POSITIFS : liste les vrais points forts du prospect (budget, vision, douleur verbalisee, experience crypto, decision solo, etc.)
-SIGNAUX A SURVEILLER : points de vigilance pour le closer (pas urgence franche, profil analytique, objection possible, etc.)
+CLASSIFICATION LEAD basee sur 900 appels reels :
+- A : score_global >= 75 → taux closing reel 92.3% — PRIORITE ABSOLUE
+- B : score_global 50-74 → taux closing reel 55.3% — BOOKER
+- C : score_global 30-49 → taux closing reel 6.0% — BOOKER AVEC PRUDENCE
+- D : score_global < 30 OU curiosite_pure=oui OU combo_fatal=oui → taux closing reel 3.2% — NE PAS BOOKER
 
-QUESTIONS CLES : 3 questions precises et personnalisees au profil — pas generiques. Format : citation du prospect + question calibree.
+SIGNAUX POSITIFS : liste les vrais points forts du prospect (budget, vision, douleur verbalisee, experience crypto, decision solo, anciennete Julien, etc.)
+SIGNAUX A SURVEILLER : points de vigilance pour le closer (pas urgence franche, profil analytique, capital bloque, objection possible, etc.)
+
+QUESTIONS CLES : 3 questions precises et personnalisees au profil — pas generiques.
 Exemple : "Il a dit qu il ne sait pas quand vendre → Demander : Sur tes cycles precedents ou tu as perdu, c etait quoi le vrai probleme ?"
 
 RECOMMANDATION :
-- RDV_OK : budget ok + pas de signal fatal + urgence au moins faible
-- RDV_KO : curiosite pure OU combo_fatal OU budget total < 3800
-- RDV_CONDITIONNEL : budget limite mais crypto existe, ou urgence faible mais douleur forte
+- RDV_OK : classification A ou B — budget ok + pas de signal fatal + urgence au moins faible
+- RDV_KO : classification D — curiosite pure OU combo_fatal OU budget total < 3800 OU score_global < 30
+- RDV_CONDITIONNEL : classification C — budget limite mais crypto existe, ou urgence faible mais douleur forte
 
 Transcript :
 ${transcript.slice(0, 30000)}`;
@@ -859,6 +872,7 @@ function renderResult(d) {
     { label: 'Urgence', val: d.score_urgence },
     { label: 'Douleur', val: d.score_douleur },
     { label: 'Décision solo', val: d.score_decision },
+    { label: 'Ancienneté Julien', val: d.score_anciennete || 0 },
   ];
   const sc = document.getElementById('scores-container');
   sc.innerHTML = scores.map(s => {
@@ -882,6 +896,8 @@ function renderResult(d) {
     { label: 'Zone de souffrance', val: formatVal(d.zone_souffrance), color: d.zone_souffrance === 'forte' ? 'green' : d.zone_souffrance === 'aucune' ? 'red' : '' },
     { label: 'Curiosité pure', val: formatVal(d.curiosite_pure), color: d.curiosite_pure === 'oui' ? 'red' : 'green' },
     { label: 'Urgence', val: formatVal(d.urgence), color: d.urgence === 'forte' ? 'green' : d.urgence === 'aucune' ? 'red' : 'amber' },
+    { label: 'Contradiction décision', val: formatVal(d.contradiction_decision_solo || 'non'), color: d.contradiction_decision_solo === 'oui' ? 'red' : 'green' },
+    { label: 'Lead classif.', val: d.classification_lead || '?', color: d.classification_lead === 'A' ? 'green' : d.classification_lead === 'B' ? 'green' : d.classification_lead === 'C' ? 'amber' : 'red' },
   ];
   document.getElementById('cr-grid').innerHTML = gridItems.map(i =>
     `<div class="cr-item"><div class="cr-item-label">${i.label}</div><div class="cr-item-value ${i.color||''}">${i.val}</div></div>`
